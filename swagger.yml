@@ -1,0 +1,650 @@
+swagger: "2.0"
+info:
+  description: "A Spring Boot application that manages claiming and unclaiming of environments"
+  version: "1.0.0"
+  title: "Concourse HTTP Environment Locking Resourse"
+  contact:
+    email: "ohughes@pivotal.io"
+  license:
+    name: "Apache 2.0"
+    url: "http://www.apache.org/licenses/LICENSE-2.0.html"
+host: "lockpool.cfapps.io"
+basePath: "/v1"
+tags:
+- name: "pools"
+  description: "Operations about environment pools"
+  externalDocs:
+    description: "Github repository"
+    url: https://github.com/ojhughes/http-environment-lock-resource
+- name: "locks"
+  description: "Operations about active locks"
+- name: "environments"
+security:
+  - environmentLockBasicAuth: []
+responses:
+  401:
+    description: "Basic authentication failed or credentials not provided"
+schemes:
+- "http"
+paths:
+  /pool:
+    get:
+      tags:
+      - "pools"
+      summary: "List all pools"
+      description: "Returns a single pool"
+      operationId: "listPools"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Pool'
+    post:
+      tags:
+      - "pools"
+      summary: "Add a new environment pool"
+      description: ""
+      operationId: "addPool"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "Pool object to be created"
+        required: true
+        schema:
+          $ref: "#/definitions/Pool"
+
+      responses:
+        200:
+          description: "Created pool successfully"
+          schema:
+            $ref: '#/definitions/Pool'
+        405:
+          description: "Invalid request body"
+          schema:
+            $ref: '#/definitions/ValidationError'
+
+  /pool/{poolId}:
+    get:
+      tags:
+      - "pools"
+      summary: "Find pool by ID"
+      description: "Returns a single pool"
+      operationId: "getPoolById"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "poolId"
+        in: "path"
+        description: "ID of pool to return"
+        required: true
+        type: "integer"
+        format: "int32"
+
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/Pool"
+        400:
+          description: "Invalid ID supplied"
+        404:
+          description: "Pool not found"
+
+    put:
+      tags:
+      - "pools"
+      summary: "Update a pool"
+      description: "Updates a single pool"
+      operationId: "updatePool"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "poolId"
+        in: "path"
+        description: "ID of pool to update"
+        required: true
+        type: "integer"
+        format: "int32"
+
+      - in: "body"
+        name: "body"
+        description: "Pool object to be updated"
+        required: true
+        schema:
+          $ref: "#/definitions/Pool"
+
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/Pool"
+        400:
+          description: "Invalid ID supplied"
+        404:
+          description: "Pool not found"
+        405:
+          description: "Invalid request body"
+          schema:
+            $ref: '#/definitions/ValidationError'
+    delete:
+      tags:
+      - "pools"
+      summary: "Delete pool by ID"
+      description: "Deletes a single pool"
+      operationId: "deletePoolById"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "poolId"
+        in: "path"
+        description: "ID of pool to delete"
+        required: true
+        type: "integer"
+        format: "int32"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/Pool"
+        400:
+          description: "Invalid ID supplied"
+        404:
+          description: "Pool not found"
+
+  /pool/findByName:
+    get:
+      tags:
+      - "pools"
+      summary: "Find pool by Name"
+      description: "Returns a single pool which match the name, or zero if not found"
+      operationId: "findPoolByName"
+      produces:
+      - "application/json"
+
+      parameters:
+      - name: "poolName"
+        in: "query"
+        description: "Name of pool to return"
+        required: true
+        type: "string"
+
+      - name: "withRelations"
+        in: "query"
+        description: "Include related entities in response"
+        default: false
+        required: false
+        type: "boolean"
+
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            required:
+              - false
+            $ref: "#/definitions/Pool"
+        400:
+          description: "Invalid name supplied"
+
+  /pool/{poolName}/findUnclaimedEnvironments:
+    get:
+      tags:
+      - "pools"
+      summary: "List all unclaimed environments within a pool"
+      description: "Returns a single pool which match the name, or zero if not found"
+      operationId: "findUnclaimedEnvironments"
+      produces:
+      - "application/json"
+
+      parameters:
+      - name: "poolName"
+        in: "query"
+        description: "Name of pool to return"
+        required: true
+        type: "string"
+
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Environment"
+        400:
+          description: "Invalid name supplied"
+
+  /pool/{poolName}/claim/:
+    put:
+      tags:
+      - "pools"
+      summary: "Claim the next available environment from pool"
+      description: "Finds a single environment in the pool that has no lock, then creates a lock for it in a single operation"
+      operationId: "claimEnvironment"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+
+      parameters:
+      - name: "poolName"
+        in: "query"
+        description: "Name of pool"
+        required: true
+        type: "string"
+
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            type: object
+            $ref: '#/definitions/Lock'
+
+        400:
+          description: "Invalid name supplied"
+
+  /pool/{poolName}/claim/{environmentName}:
+    put:
+      tags:
+      - "pools"
+      summary: "Claim the specified environment from pool"
+      description: "creates a lock the specified environment"
+      operationId: "claimEnvironmentByName"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+
+      parameters:
+      - name: "poolName"
+        in: "query"
+        description: "Name of pool"
+        required: true
+        type: "string"
+
+      - name: "environmentName"
+        in: "query"
+        description: "Name of environment to claim"
+        required: true
+        type: "string"
+
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            type: object
+            $ref: '#/definitions/Lock'
+        400:
+          description: "Invalid name supplied"
+
+  /pool/{poolName}/release/{environmentName}:
+    delete:
+      tags:
+      - "pools"
+      summary: "Release an environment"
+      description: "Ensure that environment is part of pool and remove it's lock in a single operation"
+      operationId: "releaseEnvironment"
+      produces:
+      - "application/json"
+
+      parameters:
+      - name: "poolName"
+        in: "query"
+        description: "Name of pool to release environment to"
+        required: true
+        type: "string"
+
+      - name: "environmentName"
+        in: "query"
+        description: "Name of environment to remove"
+        required: true
+        type: "string"
+
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            required:
+              - false
+            $ref: "#/definitions/Pool"
+        400:
+          description: "Invalid name supplied"
+
+  /environment:
+    get:
+      tags:
+      - "environments"
+      summary: "List all environments"
+      description: "Returns a single environment"
+      operationId: "listEnvironments"
+      produces:
+      - "application/json"
+
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Environment'
+    post:
+      tags:
+      - "environments"
+      summary: "Add a new environment environment"
+      description: ""
+      operationId: "addEnvironment"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "Environment object to be created"
+        required: true
+        schema:
+          $ref: "#/definitions/Environment"
+
+      responses:
+        200:
+          description: "Created environment successfully"
+          schema:
+            $ref: '#/definitions/Environment'
+        405:
+          description: "Invalid request body"
+          schema:
+            $ref: '#/definitions/ValidationError'
+
+  /environment/{environmentId}:
+    get:
+      tags:
+      - "environments"
+      summary: "Find environment by ID"
+      description: "Returns a single environment"
+      operationId: "getEnvironmentById"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "environmentId"
+        in: "path"
+        description: "ID of environment to return"
+        required: true
+        type: "integer"
+        format: "int32"
+
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/Environment"
+        400:
+          description: "Invalid ID supplied"
+        404:
+          description: "Environment not found"
+
+    put:
+      tags:
+      - "environments"
+      summary: "Update a environment"
+      description: "Updates a single environment"
+      operationId: "updateEnvironment"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "environmentId"
+        in: "path"
+        description: "ID of environment to update"
+        required: true
+        type: "integer"
+        format: "int32"
+
+      - in: "body"
+        name: "body"
+        description: "Environment object to be updated"
+        required: true
+        schema:
+          $ref: "#/definitions/Environment"
+
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/Environment"
+        400:
+          description: "Invalid ID supplied"
+        404:
+          description: "Environment not found"
+        405:
+          description: "Invalid request body"
+          schema:
+            $ref: '#/definitions/ValidationError'
+    delete:
+      tags:
+      - "environments"
+      summary: "Delete environment by ID"
+      description: "Deletes a single environment"
+      operationId: "deleteEnvironmentById"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "environmentId"
+        in: "path"
+        description: "ID of environment to delete"
+        required: true
+        type: "integer"
+        format: "int32"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/Environment"
+        400:
+          description: "Invalid ID supplied"
+        404:
+          description: "Environment not found"
+
+  /environment/findByName:
+    get:
+      tags:
+      - "environments"
+      summary: "Find environment by Name"
+      description: "Returns a single environment which match the name, or zero if not found"
+      operationId: "findEnvironmentByName"
+      produces:
+      - "application/json"
+
+      parameters:
+      - name: "environmentName"
+        in: "query"
+        description: "Name of environment to return"
+        required: true
+        type: "string"
+
+      - name: "withRelations"
+        in: "query"
+        description: "Include related entities in response"
+        default: false
+        required: false
+        type: "boolean"
+
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            required:
+              - false
+            $ref: "#/definitions/Environment"
+        400:
+          description: "Invalid name supplied"
+
+  /lock:
+    get:
+      tags:
+      - "locks"
+      summary: "List all locks"
+      description: "Returns a single lock"
+      operationId: "listLocks"
+      produces:
+      - "application/json"
+
+      parameters:
+      - name: "withRelations"
+        in: "query"
+        description: "Include related entities in response"
+        default: false
+        required: false
+        type: "boolean"
+
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Lock'
+
+  /lock/{lockId}:
+    get:
+      tags:
+      - "locks"
+      summary: "Find lock by ID"
+      description: "Returns a single lock"
+      operationId: "getLockById"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "lockId"
+        in: "path"
+        description: "ID of lock to return"
+        required: true
+        type: "integer"
+        format: "int32"
+
+      - name: "withRelations"
+        in: "query"
+        description: "Include related entities in response"
+        default: false"
+        required: false
+        type: "boolean"
+
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/Lock"
+        400:
+          description: "Invalid ID supplied"
+        404:
+          description: "Lock not found"
+
+  /lock/findByEnvironmentName:
+    get:
+      tags:
+      - "locks"
+      summary: "Find lock by environment ame"
+      description: "Returns a single lock which is owned by the specified environment, or zero if not found"
+      operationId: "findLockByEnvironmentName"
+      produces:
+      - "application/json"
+
+      parameters:
+      - name: "envName"
+        in: "query"
+        description: "Name of environment that owns lock"
+        required: true
+        type: "string"
+
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            required:
+              - false
+            $ref: "#/definitions/Lock"
+        400:
+          description: "Invalid name supplied"
+
+securityDefinitions:
+  environmentLockBasicAuth:
+    type: basic
+
+definitions:
+  Pool:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int32"
+        readOnly: true
+      name:
+        type: "string"
+      environments:
+        type: array
+        readOnly: true
+        items:
+          $ref: '#/definitions/Environment'
+
+  Environment:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int32"
+        readOnly: true
+      name:
+        type: "string"
+        required:
+          - true
+      metadata:
+        type: object
+        required:
+          - true
+      pool:
+        type: object
+        $ref: '#/definitions/Pool'
+        required:
+          - false
+
+  Lock:
+    type: object
+    properties:
+      id:
+        type: "integer"
+        format: "int32"
+        readOnly: true
+      claimedBy:
+        type: "string"
+        required:
+          - true
+      claimedTime:
+        type: "string"
+        format: "date-time"
+        readOnly: true
+      environment:
+        type: object
+        required:
+          - false
+        $ref: '#/definitions/Environment'
+
+  ValidationError:
+    type: object
+    readOnly: true
+    properties:
+      errorDescription:
+        type: string
+
+externalDocs:
+  description: "Find out more about Swagger"
+  url: "http://swagger.io"

@@ -1,0 +1,13 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/lockstore
+    username: lockstore
+  jooq:
+    sql-dialect: postgres_9_5
+flyway:
+  baseline-on-migrate: true
+server:
+  context-path: /v1
+security:
+  user:
+    name: lockmanager
