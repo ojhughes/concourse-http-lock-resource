@@ -15,7 +15,7 @@ tags:
   description: "Operations about environment pools"
   externalDocs:
     description: "Github repository"
-    url: https://github.com/ojhughes/http-environment-lock-resource
+    url: https://github.com/ojhughes/concourse-http-lock-resource
 - name: "locks"
   description: "Operations about active locks"
 - name: "environments"

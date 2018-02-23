@@ -1,0 +1,6 @@
+spring:
+  datasource:
+    password: b0jyMcPir@t3
+security:
+  user:
+    password: L3tsSh@reFa1rly
