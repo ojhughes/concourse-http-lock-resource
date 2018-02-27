@@ -1,0 +1,6 @@
+security:
+  user:
+    name: testuser
+    password: testpassword
+server:
+  context-path: /v1

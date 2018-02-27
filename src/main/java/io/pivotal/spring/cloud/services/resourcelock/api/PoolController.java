@@ -2,7 +2,6 @@ package io.pivotal.spring.cloud.services.resourcelock.api;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
-
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +19,7 @@ import io.pivotal.spring.cloud.services.resourcelock.model.Lock;
 import io.pivotal.spring.cloud.services.resourcelock.model.Pool;
 import io.pivotal.spring.cloud.services.resourcelock.service.PoolService;
 
+//@EnableWebMvc
 @Controller
 public class PoolController {
 

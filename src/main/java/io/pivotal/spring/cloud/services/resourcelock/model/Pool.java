@@ -1,12 +1,10 @@
 package io.pivotal.spring.cloud.services.resourcelock.model;
 
 import javax.persistence.Column;
-
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonTypeId;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -27,6 +25,10 @@ public class Pool {
 	@JsonProperty
 	@Column(insertable = false, updatable = false)
 	private Set<Environment> environments;
+
+	public Pool(String name) {
+		this.name = name;
+	}
 
 	public Pool(PoolsRecord poolsRecord) {
 		this.id = poolsRecord.getId();
