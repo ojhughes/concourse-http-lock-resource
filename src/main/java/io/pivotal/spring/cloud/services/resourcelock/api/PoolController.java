@@ -19,7 +19,6 @@ import io.pivotal.spring.cloud.services.resourcelock.model.Lock;
 import io.pivotal.spring.cloud.services.resourcelock.model.Pool;
 import io.pivotal.spring.cloud.services.resourcelock.service.PoolService;
 
-//@EnableWebMvc
 @Controller
 public class PoolController {
 
